@@ -30,6 +30,10 @@ def get_database_connector(config: Config) -> DatabaseConnectorBase:
             from vectorcode.database.chroma import ChromaDBConnector
 
             cls = ChromaDBConnector
+        case "USearchConnector":
+            from vectorcode.database.usearch import USearchConnector
+
+            cls = USearchConnector
         case _:
             raise ValueError(f"Unrecognised database type: {config.db_type}")
 
