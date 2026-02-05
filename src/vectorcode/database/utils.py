@@ -4,9 +4,10 @@ import os
 import socket
 import uuid
 from functools import cache
+from typing import TYPE_CHECKING
 
-import chromadb
-from chromadb.utils import embedding_functions
+if TYPE_CHECKING:
+    import chromadb
 
 from vectorcode.cli_utils import Config, expand_path
 
@@ -50,7 +51,10 @@ def get_collection_id(full_path: str) -> str:
 @cache
 def get_embedding_function(
     configs: Config,
-) -> chromadb.EmbeddingFunction:  # pragma: nocover
+) -> "chromadb.EmbeddingFunction":  # pragma: nocover
+    # Lazy import to avoid chromadb dependency when using non-ChromaDB connectors
+    from chromadb.utils import embedding_functions
+
     try:
         ef = getattr(embedding_functions, configs.embedding_function)(
             **configs.embedding_params

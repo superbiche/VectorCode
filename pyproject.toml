@@ -44,6 +44,7 @@ optional-dependencies.intel = [ "openvino", "optimum[openvino]" ]
 optional-dependencies.legacy = [ "numpy<2", "torch==2.2.2", "transformers<=4.49" ]
 optional-dependencies.lsp = [ "lsprotocol", "pygls<2" ]
 optional-dependencies.mcp = [ "mcp<2", "pydantic" ]
+optional-dependencies.usearch = [ "usearch>=2.0" ]
 
 urls.documentation = "https://github.com/Davidyz/VectorCode/blob/main/docs/cli.md"
 urls.github = "https://github.com/Davidyz/VectorCode"
