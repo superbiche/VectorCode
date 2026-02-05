@@ -142,19 +142,23 @@ async def vectorise(configs: Config) -> int:
     stats_lock = Lock()
     semaphore = asyncio.Semaphore(os.cpu_count() or 1)
 
+    batch_size = configs.batch_size if configs.batch_size > 0 else len(files)
+
     with tqdm.tqdm(
         total=len(files), desc="Vectorising files...", disable=configs.pipe
     ) as bar:
         try:
-            tasks = [
-                asyncio.create_task(
-                    vectorise_worker(database, file, semaphore, stats, stats_lock)
-                )
-                for file in files
-            ]
-            for task in asyncio.as_completed(tasks):
-                await task
-                bar.update(1)
+            for i in range(0, len(files), batch_size):
+                batch = files[i : i + batch_size]
+                tasks = [
+                    asyncio.create_task(
+                        vectorise_worker(database, file, semaphore, stats, stats_lock)
+                    )
+                    for file in batch
+                ]
+                for task in asyncio.as_completed(tasks):
+                    await task
+                    bar.update(1)
         except asyncio.CancelledError:  # pragma: nocover
             logger.warning("Abort.")
             return 1

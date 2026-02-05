@@ -258,3 +258,67 @@ def test_load_files_from_include_no_spec(mock_isfile, tmp_path):
     project_root = str(tmp_path)
     files = load_files_from_include(project_root)
     assert files == []
+
+
+@pytest.mark.asyncio
+async def test_vectorise_with_batch_size(tmp_path):
+    """Test that batch_size correctly limits concurrent task creation."""
+    config = Config(
+        project_root=str(tmp_path),
+        files=[f"file{i}.py" for i in range(10)],
+        batch_size=3,
+    )
+    with (
+        patch("vectorcode.subcommands.vectorise.get_database_connector") as mock_get_db,
+        patch(
+            "vectorcode.subcommands.vectorise.expand_globs", return_value=config.files
+        ),
+        patch("vectorcode.subcommands.vectorise.FilterManager") as mock_filter_manager,
+        patch(
+            "vectorcode.subcommands.vectorise.vectorise_worker", new_callable=AsyncMock
+        ) as mock_worker,
+        patch("vectorcode.subcommands.vectorise.show_stats") as mock_show_stats,
+    ):
+        mock_db = AsyncMock()
+        mock_db.list_collection_content.return_value.files = []
+        mock_get_db.return_value = mock_db
+        mock_filter_manager.return_value.return_value = config.files
+
+        result = await vectorise(config)
+
+        assert result == 0
+        # All 10 files should be processed
+        assert mock_worker.call_count == 10
+        mock_show_stats.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_vectorise_with_batch_size_disabled(tmp_path):
+    """Test that batch_size=-1 disables batching (processes all files at once)."""
+    config = Config(
+        project_root=str(tmp_path),
+        files=[f"file{i}.py" for i in range(5)],
+        batch_size=-1,
+    )
+    with (
+        patch("vectorcode.subcommands.vectorise.get_database_connector") as mock_get_db,
+        patch(
+            "vectorcode.subcommands.vectorise.expand_globs", return_value=config.files
+        ),
+        patch("vectorcode.subcommands.vectorise.FilterManager") as mock_filter_manager,
+        patch(
+            "vectorcode.subcommands.vectorise.vectorise_worker", new_callable=AsyncMock
+        ) as mock_worker,
+        patch("vectorcode.subcommands.vectorise.show_stats") as mock_show_stats,
+    ):
+        mock_db = AsyncMock()
+        mock_db.list_collection_content.return_value.files = []
+        mock_get_db.return_value = mock_db
+        mock_filter_manager.return_value.return_value = config.files
+
+        result = await vectorise(config)
+
+        assert result == 0
+        # All 5 files should be processed
+        assert mock_worker.call_count == 5
+        mock_show_stats.assert_called_once()
